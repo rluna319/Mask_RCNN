@@ -7,6 +7,7 @@ import skimage.io
 import matplotlib
 import matplotlib.pyplot as plt
 import cv2
+import time
 import imutils
 from mrcnn import utils
 import mrcnn.model as modellib
@@ -73,10 +74,19 @@ capture = cv2.VideoCapture(0)
 capture.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
 capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
 
+# initialize time array variable 
+OD_tpf = np.array([])
+
 while True:
     ret, frame = capture.read()
     
+    OD_start = time.time()
     results = model.detect([frame], verbose=0)
+    OD_end = time.time()
+    
+    #time it takes to detect an object per frame
+    OD_tpf = np.append(OD_tpf, (OD_end - OD_start))
+    
     r = results[0] 
     frame = V.display_instances(
             frame, r['rois'], r['masks'], r['class_ids'], 
@@ -87,6 +97,11 @@ while True:
     
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
+    
 
 capture.release()
 cv2.destroyAllWindows()
+TPF = round(np.average(OD_tpf),2)
+
+print("")
+print("Average time delay per frame: ", TPF, "Seconds")
