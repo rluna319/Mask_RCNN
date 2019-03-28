@@ -8,16 +8,16 @@ import matplotlib
 import matplotlib.pyplot as plt
 import cv2
 import imutils
+from mrcnn import utils
+import mrcnn.model as modellib
+from mrcnn import visualize_CV as V
 
-matplotlib.use("TkAgg")
-# Root directory of the project
+
 ROOT_DIR = os.path.abspath("./")
 
 # Import Mask RCNN
 sys.path.append(ROOT_DIR)  # To find local version of the library
-from mrcnn import utils
-import mrcnn.model as modellib
-from mrcnn import visualize
+
 # Import COCO config
 sys.path.append(os.path.join(ROOT_DIR, "samples/coco/"))  # To find local version
 import coco
@@ -69,41 +69,24 @@ class_names = ['BG', 'person', 'bicycle', 'car', 'motorcycle', 'airplane',
                'teddy bear', 'hair drier', 'toothbrush']
 
 # initialize the video stream and pointer to output video file
-vs = cv2.VideoCapture(0)
-writer = None
- 
-# try to determine the total number of frames in the video file
-try:
-	prop = cv2.cv.CV_CAP_PROP_FRAME_COUNT if imutils.is_cv2() \
-		else cv2.CAP_PROP_FRAME_COUNT
-	total = int(vs.get(prop))
-	print("[INFO] {} total frames in video".format(total))
- 
-# an error occurred while trying to determine the total
-# number of frames in the video file
-except:
-	print("[INFO] could not determine # of frames in video")
-	total = -1
-# loop over frames from the video file stream
+capture = cv2.VideoCapture(0)
+capture.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+
 while True:
-    # read the next frame from the file
-    (grabbed, frame) = vs.read()
+    ret, frame = capture.read()
     
-    # if the frame was not grabbed, then we have reached the end
-	# of the stream
-    if not grabbed:
-        break
+    results = model.detect([frame], verbose=0)
+    r = results[0] 
+    frame = V.display_instances(
+            frame, r['rois'], r['masks'], r['class_ids'], 
+            class_names, r['scores']    
+    )
     
-    # Run detection
-    results = model.detect([frame], verbose=1)
+    cv2.imshow('frame', frame)
     
-     # Visualize results
-    r = results[0]
-    visualize.display_instances(frame, r['rois'], r['masks'], r['class_ids'],
-                                class_names, r['scores'])
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
-# When everything done, release the capture
-vs.release()
+capture.release()
 cv2.destroyAllWindows()
